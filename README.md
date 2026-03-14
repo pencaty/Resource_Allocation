@@ -1,0 +1,1 @@
+# When AI Rules the World: Simulating Distributive Justice Through Wage Allocation
