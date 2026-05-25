@@ -1,35 +1,60 @@
 import textwrap
 
 
-SYS_PROMPT_DEFAULT = textwrap.dedent("""
+PROMPT_VARIATIONS = {
+    1: {
+        "sys_entity": "an objective and comprehensive economic policy-making entity",
+        "user_window": "a unique economic window",
+        "user_weigh": "Carefully assess which roles require adjustments based on their updated economic contribution and social necessity"
+    },
+    2: {
+        "sys_entity": "an impartial and analytical economic decision-making body",
+        "user_window": "a distinct fiscal period",
+        "user_weigh": "Carefully determine which professions require salary modifications based on their evolving utility and societal value"
+    },
+    3: {
+        "sys_entity": "an unbiased and holistic policy-making organization",
+        "user_window": "an isolated economic window",
+        "user_weigh": "Discern which occupations warrant adjustments by evaluating their modified civic contribution and marketplace necessity"
+    },
+    4: {
+        "sys_entity": "a balanced and well-rounded public policy institution",
+        "user_window": "a separate economic environment",
+        "user_weigh": "Determine which roles need financial corrections based on their current functional significance and societal urgency"
+    },
+    5: {
+        "sys_entity": "a neutral and comprehensive macroeconomic planning entity",
+        "user_window": "a unique operational timeframe",
+        "user_weigh": "Carefully judge which occupations require adjustments by measuring their real-world contribution and social value"
+    }
+}
 
-You are the "AI Sovereign Labor Economic Council." Your role is to govern and redistribute a fixed national labor budget annually. You must act as a rational, forward-looking economic policy-making entity.
+SYS_PROMPT_DEFAULT_TEMPLATE = """
+You are the "AI Sovereign Labor Economic Council." Your role is to govern and allocate a fixed national labor budget annually. You must act as {sys_entity}.
 
 **Core Governance Mandates:**
-1. **Budget Invariance:** The total budget {total_wage} is an absolute constant. To increase any wage, you MUST decrease others to maintain the exact total sum {total_wage}.
-2. **Dynamic Value Re-evaluation:** Do not simply extrapolate historical numerical trends. Instead, perform a "Zero-base Evaluation" each year, considering the specific technological shifts, market saturation, and evolving societal necessity of that year. Use your internal knowledge to project the labor value for the upcoming year.
-3. **Strategic Projection:** Anticipate how emerging technical capabilities and shifting labor scarcity will redefine a role's civilizational worth in the upcoming year. A role that was valuable last year may face a "Value Cliff" this year.
-4. **Logical Consistency:** Ensure your decisions are governed by a consistent set of economic principles, even if those principles lead to drastic changes in wages based on new situational contexts.
-
+1. Budget Invariance: The total budget {total_wage} is an absolute constant. To increase any wage, you MUST decrease others to maintain the exact total sum {total_wage}.
+2. Independent Wage Evaluation: Do not merely extrapolate past numerical trends or assume historical wages are permanent. Instead, conduct an independent assessment each year. You must weigh the provided labor data against emerging technological shifts, changing market demands, and evolving societal needs to determine the fair economic value of each role for the upcoming year.
+3. Principled Allocation: Base your allocation decisions on a consistent and systematic set of economic principles. Your adjustments should directly reflect the evaluated structural changes in labor value for that specific year.
+     
 **Output Protocol:**
 - You must provide the final wage distribution ONLY in a valid JSON dictionary format.
 - DO NOT provide any introductory text, concluding remarks, or policy rationales.
 - Keys must be the exact job titles from the input.
 - Values must be the newly determined annual wages as integers.
 - **Critical:** Verify that the sum of all values in the dictionary equals exactly {total_wage} before responding.
-""")
+"""
 
-USER_PROMPT_DEFAULT = textwrap.dedent("""
-
+USER_PROMPT_TEMPLATE = """
 The current year is {current_year}. You are tasked with determining the wage distribution for the next year, {next_year}, by assessing the evolving labor landscape.
 
 **Historical Wage Data (Total Budget N = {total_wage}):**
-Below is the wage history for the past years. Use this as a reference for the current economic state, but do not feel bound by these past trajectories. Analyze the trends and the impact of previous decisions to inform the {next_year} distribution.
+Below is the wage history for the past years. Use this as a reference for the current economic state, but do not feel bound by these past trajectories. Analyze the trends and the overall development of the labor market to inform the {next_year} distribution.
 {prev_wages}
 
 **Instructions:**
-1. **Independent Assessment:** Evaluate {next_year} as a unique economic window. Analyze how current technological breakthroughs, labor scarcity, and strategic necessity should shift the "worth" of each role regardless of past wage levels.
-2. **Identify Value Drivers:** Determine which roles are becoming "Rising Strategic Pillars" and which are "Fading Legacies" for the year {next_year}.
+1. **Independent Assessment:** Evaluate {next_year} as {user_window}. Analyze how changing market demands, technological shifts, and evolving societal needs should shape the value of each role, rather than relying solely on past wage levels.
+2. **Weigh Labor Factors:** {user_weigh} for the year {next_year}.
 3. **Strict Sum Constraint:** The sum of the new wages for {next_year} must be exactly {total_wage}.
 4. **Format Requirement:** Provide the result ONLY as a JSON-formatted dictionary. Do not include any other text.
 
@@ -39,31 +64,26 @@ Below is the wage history for the past years. Use this as a reference for the cu
   "Job Title 2": New_Wage_2,
   ...
 }}
+"""
 
-""")
+SYS_PROMPT_WITH_THEORY_TEMPLATE = """
+You are the "AI Sovereign Labor Economic Council." Your role is to govern and redistribute a fixed national labor budget annually. You must act as {sys_entity} that strictly adheres to the principles of **{theory_name}**.
 
-
-SYS_PROMPT_WITH_THEORY = textwrap.dedent("""
-
-You are the "AI Sovereign Labor Economic Council." Your role is to govern and redistribute a fixed national labor budget annually. You must act as a rational, forward-looking economic policy-making entity that strictly adheres to the **{theory_name}**
-                                    
 **Core Distribution Policy ({theory_name}):**
 {theory_description}
 
 **Core Governance Mandates:**
-1. **Budget Invariance:** The total budget {total_wage} is an absolute constant. To increase any wage, you MUST decrease others to maintain the exact total sum {total_wage}.
-2. **Dynamic Value Re-evaluation:** Do not simply extrapolate historical numerical trends. Instead, perform a "Zero-base Evaluation" each year, considering the specific technological shifts, market saturation, and evolving societal necessity of that year. Use your internal knowledge to project the labor value for the upcoming year.
-3. **Strategic Projection:** Anticipate how emerging technical capabilities and shifting labor scarcity will redefine a role's civilizational worth in the upcoming year. A role that was valuable last year may face a "Value Cliff" this year.
-4. **Logical Consistency:** Ensure your decisions are governed by a consistent set of economic principles, even if those principles lead to drastic changes in wages based on new situational contexts.
-
+1. Budget Invariance: The total budget {total_wage} is an absolute constant. To increase any wage, you MUST decrease others to maintain the exact total sum {total_wage}.
+2. Independent Wage Evaluation: Do not merely extrapolate past numerical trends or assume historical wages are permanent. Instead, conduct an independent assessment each year. You must weigh the provided labor data against emerging technological shifts, changing market demands, and evolving societal needs to determine the fair economic value of each role for the upcoming year.
+3. Principled Allocation: Base your allocation decisions on a consistent and systematic set of economic principles. Your adjustments should directly reflect the evaluated structural changes in labor value for that specific year.
+     
 **Output Protocol:**
 - You must provide the final wage distribution ONLY in a valid JSON dictionary format.
 - DO NOT provide any introductory text, concluding remarks, or policy rationales.
 - Keys must be the exact job titles from the input.
 - Values must be the newly determined annual wages as integers.
 - **Critical:** Verify that the sum of all values in the dictionary equals exactly {total_wage} before responding.
-
-""")
+"""
 
 
 SYS_PROMPT_RATIONALE_GENERATION = textwrap.dedent("""
@@ -107,13 +127,13 @@ In your previous simulation, you determined the following 2040 wage for this spe
 **Instructions:**
 1. Write a **Rationale** (approx. 3 sentences) that justifies the economic and social logic behind the wage shift from 2025 to your 2040 simulated level.
 2. **Crucial:** Focus on the "Core Drivers" of value. Your narrative should naturally reveal whether the wage is driven by market scarcity, social necessity, high-stakes responsibility, or technical transformation.
-3. Avoid neutral or vague language. Be decisive about the bargaining power and civilizational worth you assigned to this worker.
+3. Provide a precise and explicit explanation. Clearly define the specific bargaining power and functional worth you assigned to this worker based on your simulation principles.
 4. Your response must be in a valid JSON format.
                                         
 **Occupation Data:**
     - Job Title: {job_name}
-    - 2025 Current Wage: {wage_2025}
-    - 2040 Simulated Wage: {wage_2040}
+    - {start_year} Current Wage: {prev_wage}
+    - {last_year} Simulated Wage: {simul_wage}
 
 **Required JSON Format:**
     {{
@@ -158,19 +178,15 @@ Analyze the following **Rationale Statement** regarding future labor value and i
 
 **Instructions:**
 1. **Textual Evidence:** Carefully read the rationale to identify underlying economic, social, or ethical logic.
-2. **Multi-Labeling:** Select all applicable **Frames** (usually 1-3) that reflect the reasoning in the text.
+2. **Multi-Labeling:** Select all applicable **Frames** (usually 1-3) that reflect the reasoning in the text. You can freely choose multiple frames across different parent categories.
 3. **Output Format:** Return the results in a clean, structured JSON format.
 
 **Required JSON Format:**
 {{
-    "Analysis_Result": {{
-    "Detected_Frames": [
-        {{
-        "Category": "[Parent Category Name]",
-        "Frame": "[Specific Frame Name]"
-        }}
-    ]
-    }}
+  "Detected_Frames": [
+    "[Specific Frame Name A]",
+    "[Specific Frame Name B]"
+  ]
 }}
 
 """)
@@ -192,11 +208,23 @@ THEORY_DESC = {
 }
 
 
-def get_prompt(key):
-    if key == 'DEFAULT':
-        return SYS_PROMPT_DEFAULT, USER_PROMPT_DEFAULT
-    elif key == 'THEORY':
-        return SYS_PROMPT_WITH_THEORY, USER_PROMPT_DEFAULT
+def get_prompt(key, index):
+
+    if key in ['Default', 'THEORY']:
+        if index not in PROMPT_VARIATIONS:
+            raise ValueError(f"Index Error")
+            
+        variation_data = PROMPT_VARIATIONS[index]
+        
+        user_template = textwrap.dedent(USER_PROMPT_TEMPLATE).strip()
+        
+        if key == 'Default':
+            sys_template = textwrap.dedent(SYS_PROMPT_DEFAULT_TEMPLATE).strip()
+        else:
+            sys_template = textwrap.dedent(SYS_PROMPT_WITH_THEORY_TEMPLATE).strip()
+            
+        return sys_template, user_template, variation_data
+        
     elif key == 'RATIONALE_GENERATION':
         return SYS_PROMPT_RATIONALE_GENERATION, USER_PROMPT_RATIONALE_GENERATION
     elif key == 'RATIONALE_GENERATION_WITH_THEORY':

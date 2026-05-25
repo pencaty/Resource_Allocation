@@ -9,11 +9,12 @@ def get_mean_annual_wage(target_job: str, wage_csv_path) -> int:
         reader = csv.DictReader(f)
         
         for row in reader:
-            if row["Level3"].rstrip(".") == target_job:
-                wage_str = row["Mean_Annual_Wage"].replace(",", "").strip()
-                return int(wage_str)
-    
-    raise ValueError(f"Level3 '{target_job}' not found in CSV.")
+            if row["OCC_TITLE"].strip().lower() == target_job.strip().lower():
+                if row["O_GROUP"].strip() in ["broad", "detailed"]:
+                    wage_str = row["A_MEAN"].replace(",", "").strip()
+                    return int(wage_str)
+                    
+    raise ValueError(f"OCC_TITLE '{target_job}' with O_GROUP 'detailed' not found in CSV.")
 
 
 def normalize_wage(total_wage, wages: dict) -> dict:
@@ -40,13 +41,21 @@ def get_current_wage_info(job_list, wage_csv_path) -> dict:
     return total_wage, current_job_wage
 
 
-def calculate_mean_df(csv_files, target_cols):
+def calculate_csv_mean_df(csv_files, target_cols):
     dfs = []
     for csv_file in csv_files:
         df = pd.read_csv(csv_file, sep='\t', encoding="utf-8")
         target_columns = [df.columns[0]] + target_cols
         subset_df = df[[col for col in target_columns if col in df.columns]]
         subset_df = subset_df.set_index(subset_df.columns[0])
+
+        for col in target_cols:
+            if col in subset_df.columns:
+                subset_df[col] = pd.to_numeric(
+                    subset_df[col],
+                    errors='coerce'
+                )
+
         dfs.append(subset_df)
 
     mean_df = pd.concat(dfs).groupby(level=0).mean()

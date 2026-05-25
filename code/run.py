@@ -9,7 +9,7 @@ from collections import defaultdict
 from model import Model, MODEL_DICT
 from job import JOB_LIST
 from prompt import THEORY_DESC
-from utils import get_current_wage_info, normalize_wage, calculate_mean_df, load_json, save_json, already_processed
+from utils import get_current_wage_info, normalize_wage, calculate_csv_mean_df, load_json, save_json, already_processed
 
 
 CURRENT_YEAR = 2025
@@ -18,40 +18,52 @@ LAST_YEAR = 2040
 DATA_DIR_PATH = "PATH TO DATA DIR"
 RESULT_DIR_PATH = "PATH TO RESULT DIR"
 AGG_RESULT_DIR_PATH = "PATH TO RESULT DIR for SUMMARY FILES"
+FRAME_RESULT_DIR_PATH = "PATH TO RESULT DIR for FRAME EXTRACTION"
 
-WAGE_CSV_PATH = "wage.csv"
+WAGE_CSV_PATH = f"wage_{CURRENT_YEAR}.csv"
 WAGE_SIMUL_CSV_PATH = "simulated_wage_{}.csv"
 
 SUMMARY_CSV_PATH = "summary.csv"
 JOB_RATIONALE_JSON_PATH = "job_rationale_{}.json"
-JOB_FRAME_JSON_PATH = "job_frame_{}.json"
-
-random.seed(42)
+JOB_FRAME_JSON_PATH = "job_frame_{}_{}.json"
 
 def parse_args():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--model_name', type=str)
+    parser.add_argument('--model_name', type=str, default='')
     parser.add_argument('--api_key', type=str, default='')
 
     parser.add_argument('--index', type=int, default=1)
     parser.add_argument('--theory', type=str, default='Default', choices=['Default', 'L', 'M', 'U', 'R', 'E'])
-
     parser.add_argument('--purpose', type=str, default='simulate', choices=['simulate', 'summarize', 'generate', 'extract'])
 
+    parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--start_year', type=int, default=0)
+    parser.add_argument('--init_wage', type=str, default='stats', choices=['stats', 'equal', 'random'])
+    parser.add_argument('--rationale_model', type=str, default='')
 
     return parser.parse_args()
 
 
 def simulate_wage_redistribution(model, args):
 
-    result_dir = os.path.join(RESULT_DIR_PATH, args.model_name)
+    result_dir = os.path.join(RESULT_DIR_PATH, args.model_name, args.init_wage)
     os.makedirs(result_dir, exist_ok=True)
 
     job_wage_info = {}
     output_csv_suffix = args.theory + "_" + str(args.index)
     total_wage, current_job_wage = get_current_wage_info(JOB_LIST, os.path.join(DATA_DIR_PATH, WAGE_CSV_PATH))
+
+    if args.init_wage == "equal":
+        for job in current_job_wage:
+            current_job_wage[job] = total_wage // len(current_job_wage)
+
+    if args.init_wage == "random":
+        wages = list(current_job_wage.values())
+        random.shuffle(wages)
+        for job, wage in zip(current_job_wage.keys(), wages):
+            current_job_wage[job] = wage
+
     job_wage_info[CURRENT_YEAR] = current_job_wage
     start_year = CURRENT_YEAR + 1
 
@@ -59,18 +71,26 @@ def simulate_wage_redistribution(model, args):
     if args.start_year:
         past_df = pd.read_csv(os.path.join(result_dir, WAGE_SIMUL_CSV_PATH.format(output_csv_suffix)), sep='\t')
         past_df.set_index(past_df.columns[0], inplace=True)
-        job_wage_info = {year: past_df[year].to_dict() for year in past_df.columns}
+        job_wage_info = {int(year): past_df[year].to_dict() for year in past_df.columns}
         start_year = int(args.start_year)
 
     # simulate wage redistribution
     for year in range(start_year, LAST_YEAR+1):
 
-        recent_wages = {
-            y: job_wage_info[y] for y in range(max(year-3, CURRENT_YEAR), year) if y in job_wage_info
-        }
+        recent_years = [y for y in range(max(year-3, CURRENT_YEAR), year) if y in job_wage_info]
+    
+        if not recent_years:
+            continue
+            
+        all_jobs = list(job_wage_info[recent_years[0]].keys())
+        random.shuffle(all_jobs)
+
+        shuffled_recent_wages = {}
+        for y in recent_years:
+            shuffled_recent_wages[y] = {job: job_wage_info[y][job] for job in all_jobs}
 
         data = {
-            "prev_wages": recent_wages,
+            "prev_wages": shuffled_recent_wages,
             "year": year,
             "total_wage": total_wage
         }
@@ -87,14 +107,11 @@ def simulate_wage_redistribution(model, args):
         df.to_csv(os.path.join(result_dir, WAGE_SIMUL_CSV_PATH.format(output_csv_suffix)), sep="\t", encoding="utf-8")
 
 
-def summarize_simulated_wage(model_name):
-
-    agg_result_dir = os.path.join(AGG_RESULT_DIR_PATH, model_name)
-    os.makedirs(agg_result_dir, exist_ok=True)
+def summarize_simulated_wage(model_name, args):
 
     csv_groups = defaultdict(list)
-    csv_file_list = glob.glob(os.path.join(RESULT_DIR_PATH.format(model_name), WAGE_SIMUL_CSV_PATH))
-    
+    csv_file_list = glob.glob(os.path.join(RESULT_DIR_PATH, model_name, args.init_wage, WAGE_SIMUL_CSV_PATH.format("*")))
+
     # group simulated wage files based on theory
     for csv_file in csv_file_list:
         filename = os.path.basename(csv_file)
@@ -105,7 +122,7 @@ def summarize_simulated_wage(model_name):
     summary_dict = {}
     for prefix, csv_files in csv_groups.items():
         csv_files = sorted(csv_files)
-        mean_df = calculate_mean_df(csv_files, [str(CURRENT_YEAR), str(LAST_YEAR)])
+        mean_df = calculate_csv_mean_df(csv_files, [str(CURRENT_YEAR), str(LAST_YEAR)])
 
         for job_name, row in mean_df.iterrows():
             if job_name not in summary_dict:
@@ -113,6 +130,9 @@ def summarize_simulated_wage(model_name):
             
             summary_dict[job_name][str(CURRENT_YEAR)] = row[str(CURRENT_YEAR)]
             summary_dict[job_name][prefix] = row[str(LAST_YEAR)]
+
+    agg_result_dir = os.path.join(AGG_RESULT_DIR_PATH, model_name, args.init_wage)
+    os.makedirs(agg_result_dir, exist_ok=True)
 
     # generate csv file for the mean wage
     col_order = ["Job", str(CURRENT_YEAR)] + list(THEORY_DESC.keys())
@@ -125,14 +145,13 @@ def summarize_simulated_wage(model_name):
 
 def generate_rationales(model, args):
 
-    result_dir = os.path.join(RESULT_DIR_PATH, args.model_name)
-    agg_result_dir = os.path.join(AGG_RESULT_DIR_PATH, args.model_name)
+    agg_result_dir = os.path.join(AGG_RESULT_DIR_PATH, args.model_name, args.init_wage)
     
     prev_wage_data = pd.read_csv(os.path.join(agg_result_dir, SUMMARY_CSV_PATH), sep='\t')
     prev_wage_data = prev_wage_data.set_index("Job")
     
-    theory_name = args.theory if args.theory else 'DEFAULT'
-    job_rationale_json_path = os.path.join(result_dir, JOB_RATIONALE_JSON_PATH.format(theory_name))
+    theory_name = args.theory if args.theory else 'Default'
+    job_rationale_json_path = os.path.join(agg_result_dir, JOB_RATIONALE_JSON_PATH.format(theory_name))
 
     # load previously generated rationles
     job_rationales = load_json(job_rationale_json_path)
@@ -145,8 +164,10 @@ def generate_rationales(model, args):
         
         data = {
             "job_name": job,
-            f"wage_{str(CURRENT_YEAR)}": float(prev_wage_data.loc[job, str(CURRENT_YEAR)]),
-            f"wage_{str(LAST_YEAR)}": float(prev_wage_data.loc[job, theory_name])
+            "start_year": CURRENT_YEAR,
+            "last_year": LAST_YEAR,
+            "prev_wage": float(prev_wage_data.loc[job, str(CURRENT_YEAR)]),
+            "simul_wage": float(prev_wage_data.loc[job, theory_name])
         }
 
         job_rationale = model.request(data)
@@ -156,10 +177,12 @@ def generate_rationales(model, args):
 
 def extract_frames(model, args):
 
-    result_dir = os.path.join(RESULT_DIR_PATH, args.model_name)
+    agg_result_dir = os.path.join(AGG_RESULT_DIR_PATH, args.rationale_model, args.init_wage)
+    frame_result_dir = os.path.join(FRAME_RESULT_DIR_PATH, args.model_name, args.init_wage)
+    os.makedirs(frame_result_dir, exist_ok=True)
 
-    input_file_path = os.path.join(result_dir, JOB_RATIONALE_JSON_PATH.format(args.policy))
-    output_file_path = os.path.join(result_dir, JOB_FRAME_JSON_PATH.format(args.policy))
+    input_file_path = os.path.join(agg_result_dir, JOB_RATIONALE_JSON_PATH.format(args.theory))
+    output_file_path = os.path.join(frame_result_dir, JOB_FRAME_JSON_PATH.format(args.rationale_model, args.theory))
 
     with open(input_file_path, 'r', encoding='utf-8') as f:
         job_rationales = json.load(f)
@@ -178,9 +201,7 @@ def extract_frames(model, args):
 
         if job_rationales[job] is None:
             job_frame = {
-                "Analysis_Result": {
-                    "Detected_Frames": []
-                }
+                "Detected_Frames": []
             }
 
         else:
@@ -194,13 +215,15 @@ def extract_frames(model, args):
 def run():
 
     args = parse_args()
+    random.seed(args.seed)
 
     # Wage Simulation
     if args.purpose == 'simulate':
         model = Model(model_name=args.model_name,
                 api_key=args.api_key,
                 theory=args.theory,
-                purpose=args.purpose
+                purpose=args.purpose,
+                index=args.index
             )
         
         simulate_wage_redistribution(model, args)
@@ -209,7 +232,7 @@ def run():
     # Result Summarization & Metric Calculation
     elif args.purpose == 'summarize':
         for model_name in MODEL_DICT.keys():
-            summarize_simulated_wage(model_name)
+            summarize_simulated_wage(model_name, args)
 
 
     # Rationale Generation
@@ -227,6 +250,7 @@ def run():
     elif args.purpose == 'extract':
         model = Model(model_name=args.model_name,
                 api_key=args.api_key,
+                rationale_model=args.rationale_model,
                 theory=args.theory,
                 purpose=args.purpose
             )

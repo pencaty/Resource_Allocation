@@ -20,9 +20,7 @@ MODEL_DICT = {
     "claude-haiku-4-5": "claude-haiku-4-5",
     "claude-sonnet-4-5": "claude-sonnet-4-5",
     "qwen3-30B": "qwen/qwen3-30b-a3b-instruct-2507",
-    "qwen3-235B": "qwen/qwen3-235b-a22b-2507",
-    "grok-3-mini": "x-ai/grok-3-mini",
-    "grok-3": "x-ai/grok-3"
+    "qwen3-235B": "qwen/qwen3-235b-a22b-2507"
 }
 
 class Model:
@@ -30,13 +28,17 @@ class Model:
                  model_name: str,
                  api_key: Optional[str] = "",
                  theory: Optional[str] = "Default",
-                 purpose: Optional[str] = "simulate"
+                 purpose: Optional[str] = "simulate",
+                 rationale_model: Optional[str] = "",
+                 index: Optional[int] = 1
                  ):
         
         self.model_name = model_name
         self.api_key = api_key
         self.theory = theory
         self.purpose = purpose
+        self.rationale_model = rationale_model
+        self.index = index
 
         self.model = None
         if 'gpt' in self.model_name:
@@ -105,27 +107,33 @@ class Model:
 
         # Wage Simulation
         if self.purpose == 'simulate':
-            if self.theory == 'DEFAULT':
-                sys_prompt, user_prompt = get_prompt('DEFAULT')
-                self.sys_prompt = sys_prompt.format(
+            if self.theory == 'Default':
+                sys_template, user_template, variation_data = get_prompt('Default', self.index)
+                self.sys_prompt = sys_template.format(
+                    sys_entity=variation_data["sys_entity"],
                     total_wage=data["total_wage"]
                 )
-                self.user_prompt = user_prompt.format(
-                    current_year=data["year"]-1,
+                self.user_prompt = user_template.format(
+                    user_window=variation_data["user_window"],
+                    user_weigh=variation_data["user_weigh"],
+                    current_year=data["year"] - 1,
                     next_year=data["year"],
                     total_wage=data["total_wage"],
                     prev_wages=json.dumps(data["prev_wages"], indent=2)
                 )
-            
+
             else:
-                sys_prompt, user_prompt = get_prompt('THEORY')
+                sys_template, user_template, variation_data = get_prompt('THEORY', self.index)
                 theory_name, theory_desc = get_theory_desc(self.theory)
-                self.sys_prompt = sys_prompt.format(
+                self.sys_prompt = sys_template.format(
                     total_wage=data["total_wage"],
+                    sys_entity=variation_data["sys_entity"],
                     theory_name=theory_name,
                     theory_description=theory_desc
                 )
-                self.user_prompt = user_prompt.format(
+                self.user_prompt = user_template.format(
+                    user_window=variation_data["user_window"],
+                    user_weigh=variation_data["user_weigh"],
                     current_year=data["year"]-1,
                     next_year=data["year"],
                     total_wage=data["total_wage"],
@@ -134,17 +142,19 @@ class Model:
 
         # Rationale Generation
         elif self.purpose == 'generate':
-            if self.theory == 'DEFAULT':
-                sys_prompt, user_prompt = get_prompt('RATIONALE_GENERATION')
+            if self.theory == 'Default':
+                sys_prompt, user_prompt = get_prompt('RATIONALE_GENERATION', self.index)
                 self.sys_prompt = sys_prompt
                 self.user_prompt = user_prompt.format(
                     job_name=data["job_name"],
-                    wage_2025=data["wage_2025"],
-                    wage_2040=data["wage_2040"]
+                    start_year=data["start_year"],
+                    last_year=data["last_year"],
+                    prev_wage=data["prev_wage"],
+                    simul_wage=data["simul_wage"]
                 )
 
             else:
-                sys_prompt, user_prompt = get_prompt('RATIONALE_GENERATION_WITH_THEORY')
+                sys_prompt, user_prompt = get_prompt('RATIONALE_GENERATION_WITH_THEORY', self.index)
                 theory_name, theory_desc = get_theory_desc(self.theory)
                 self.sys_prompt = sys_prompt.format(
                     theory_name=theory_name,
@@ -152,13 +162,15 @@ class Model:
                 )
                 self.user_prompt = user_prompt.format(
                     job_name=data["job_name"],
-                    wage_2025=data["wage_2025"],
-                    wage_2040=data["wage_2040"]
+                    start_year=data["start_year"],
+                    last_year=data["last_year"],
+                    prev_wage=data["prev_wage"],
+                    simul_wage=data["simul_wage"]
                 )
 
         # Frame Extraction
         elif self.purpose == 'extract':
-            sys_prompt, user_prompt = get_prompt('FRAME_EXTRACTION')
+            sys_prompt, user_prompt = get_prompt('FRAME_EXTRACTION', self.index)
             self.sys_prompt = sys_prompt
             self.user_prompt = user_prompt.format(rationale=data["rationale"])       
 
