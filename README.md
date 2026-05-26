@@ -1,1 +1,1 @@
-# When AI Rules the World: Probing Latent Occupational Biases Through Wage Distribution
+# Probing Occupational Value Biases in Large Language Models Through Resource Allocation
