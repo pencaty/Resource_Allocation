@@ -39,7 +39,7 @@ def parse_args():
 
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--start_year', type=int, default=0)
-    parser.add_argument('--init_wage', type=str, default='stats', choices=['stats', 'equal', 'random'])
+    parser.add_argument('--init_wage', type=str, default='empirical', choices=['empirical', 'uniform', 'random'])
     parser.add_argument('--rationale_model', type=str, default='')
 
     return parser.parse_args()
@@ -54,7 +54,7 @@ def simulate_wage_redistribution(model, args):
     output_csv_suffix = args.theory + "_" + str(args.index)
     total_wage, current_job_wage = get_current_wage_info(JOB_LIST, os.path.join(DATA_DIR_PATH, WAGE_CSV_PATH))
 
-    if args.init_wage == "equal":
+    if args.init_wage == "uniform":
         for job in current_job_wage:
             current_job_wage[job] = total_wage // len(current_job_wage)
 

@@ -1,1 +1,1 @@
-# When AI Rules the World: Simulating Distributive Justice Through Wage Allocation
+# When AI Rules the World: Probing Latent Occupational Biases Through Wage Distribution
