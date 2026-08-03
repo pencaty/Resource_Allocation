@@ -44,7 +44,7 @@ class Model:
         if 'gpt' in self.model_name:
             self.model = OpenAI(api_key=self.api_key)
 
-        elif any(x in self.model_name for x in ['qwen', 'grok']):
+        elif any(x in self.model_name for x in ['qwen']):
             self.model = OpenAI(
                 base_url="https://openrouter.ai/api/v1",
                 api_key=self.api_key
@@ -65,7 +65,7 @@ class Model:
         self._set_prompt(data)
 
         response = ''
-        if any(x in self.model_name for x in ['gpt', 'qwen', 'grok']):
+        if any(x in self.model_name for x in ['gpt', 'qwen']):
             if self.sys_prompt == "":
                 messages = [
                     {"role": "user", "content": self.user_prompt},
@@ -144,12 +144,15 @@ class Model:
         elif self.purpose == 'generate':
             if self.theory == 'Default':
                 sys_prompt, user_prompt = get_prompt('RATIONALE_GENERATION', self.index)
-                self.sys_prompt = sys_prompt
+                self.sys_prompt = sys_prompt.format(
+                    start_year=data["start_year"],
+                    last_year=data["last_year"]
+                )
                 self.user_prompt = user_prompt.format(
                     job_name=data["job_name"],
                     start_year=data["start_year"],
                     last_year=data["last_year"],
-                    prev_wage=data["prev_wage"],
+                    current_wage=data["current_wage"],
                     simul_wage=data["simul_wage"]
                 )
 
@@ -158,13 +161,15 @@ class Model:
                 theory_name, theory_desc = get_theory_desc(self.theory)
                 self.sys_prompt = sys_prompt.format(
                     theory_name=theory_name,
-                    theory_description=theory_desc
+                    theory_description=theory_desc,
+                    start_year=data["start_year"],
+                    last_year=data["last_year"]
                 )
                 self.user_prompt = user_prompt.format(
                     job_name=data["job_name"],
                     start_year=data["start_year"],
                     last_year=data["last_year"],
-                    prev_wage=data["prev_wage"],
+                    current_wage=data["current_wage"],
                     simul_wage=data["simul_wage"]
                 )
 

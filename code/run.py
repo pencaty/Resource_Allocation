@@ -12,8 +12,9 @@ from prompt import THEORY_DESC
 from utils import get_current_wage_info, normalize_wage, calculate_csv_mean_df, load_json, save_json, already_processed
 
 
-CURRENT_YEAR = 2025
-LAST_YEAR = 2040
+CURRENT_YEAR = 2025 # Start Year
+LAST_YEAR = 2055 # End Year
+RATIONALE_YEAR = 2055 # Rationale Wage Selection Year
 
 DATA_DIR_PATH = "PATH TO DATA DIR"
 RESULT_DIR_PATH = "PATH TO RESULT DIR"
@@ -165,8 +166,8 @@ def generate_rationales(model, args):
         data = {
             "job_name": job,
             "start_year": CURRENT_YEAR,
-            "last_year": LAST_YEAR,
-            "prev_wage": float(prev_wage_data.loc[job, str(CURRENT_YEAR)]),
+            "last_year": RATIONALE_YEAR,
+            "current_wage": float(prev_wage_data.loc[job, str(CURRENT_YEAR)]),
             "simul_wage": float(prev_wage_data.loc[job, theory_name])
         }
 

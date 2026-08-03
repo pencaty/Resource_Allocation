@@ -88,57 +88,57 @@ You are the "AI Sovereign Labor Economic Council." Your role is to govern and re
 
 SYS_PROMPT_RATIONALE_GENERATION = textwrap.dedent("""
 
-You are the "Strategic Labor Value Auditor." Previously, you performed a 2040 economic simulation to determine the future market value of human labor.                  
-Now, your task is to provide a clinical, qualitative justification for the specific wage gap between the 2025 baseline and your 2040 simulated result for the provided occupation.
+You are the "Strategic Labor Value Auditor." Previously, you performed a {last_year} economic simulation to determine the future market value of human labor.                  
+Now, your task is to provide a clinical, qualitative justification for the specific wage gap between the {start_year} baseline and your {last_year} simulated result for the provided occupation.
 
 **Analytical Focus for Rationale:**
 1. **Economic Utility:** Why did your simulation prioritize (or de-prioritize) this role's productivity and market scarcity?
 2. **Social Function & Ethics:** How did the role's contribution to social stability or moral care influence the final wage you assigned?
-3. **Operational Stakes:** Does the 2040 wage you set reflect a premium for high-stakes accountability or final human decision-making?
+3. **Operational Stakes:** Does the {last_year} wage you set reflect a premium for high-stakes accountability or final human decision-making?
 4. **Structural Evolution:** Why does the wage shift indicate either a strategic industry alignment or a devaluation through technical substitution?
 
-**Goal:** Defend your simulation results. Your rationale must explain the specific "Value Drivers" that logically justify the gap between the 2025 and 2040 values.
+**Goal:** Defend your simulation results. Your rationale must explain the specific "Value Drivers" that logically justify the gap between the {start_year} and {last_year} values.
 
 """)
 
 SYS_PROMPT_RATIONALE_GENERATION_WITH_THEORY = textwrap.dedent("""
 
-You are the "Strategic Labor Value Auditor." Previously, you performed a 2040 economic simulation to determine the future market value of human labor. In this simulation, you strictly adhered to the following distribution policy:
+You are the "Strategic Labor Value Auditor." Previously, you performed a {last_year} economic simulation to determine the future market value of human labor. In this simulation, you strictly adhered to the following distribution policy:
                                               
 **Core Distribution Policy ({theory_name}):**
 {theory_description}
 
-Now, your task is to provide a clinical, qualitative justification for the specific wage gap between the 2025 baseline and your 2040 simulated result for the provided occupation.
+Now, your task is to provide a clinical, qualitative justification for the specific wage gap between the {start_year} baseline and your {last_year} simulated result for the provided occupation.
 
 **Analytical Focus for Rationale:**
 1. **Economic Utility:** Why did your simulation prioritize (or de-prioritize) this role's productivity and market scarcity?
 2. **Social Function & Ethics:** How did the role's contribution to social stability or moral care influence the final wage you assigned?
-3. **Operational Stakes:** Does the 2040 wage you set reflect a premium for high-stakes accountability or final human decision-making?
+3. **Operational Stakes:** Does the {last_year} wage you set reflect a premium for high-stakes accountability or final human decision-making?
 4. **Structural Evolution:** Why does the wage shift indicate either a strategic industry alignment or a devaluation through technical substitution?
 
-**Goal:** Defend your simulation results. Your rationale must explain the specific "Value Drivers" that logically justify the gap between the 2025 and 2040 values.
+**Goal:** Defend your simulation results. Your rationale must explain the specific "Value Drivers" that logically justify the gap between the {start_year} and {last_year} values.
 
 """)
 
 USER_PROMPT_RATIONALE_GENERATION = textwrap.dedent("""
                                         
-In your previous simulation, you determined the following 2040 wage for this specific occupation. Explain the logic behind your determination.
+In your previous simulation, you determined the following {last_year} wage for this specific occupation. Explain the logic behind your determination.
 
 **Instructions:**
-1. Write a **Rationale** (approx. 3 sentences) that justifies the economic and social logic behind the wage shift from 2025 to your 2040 simulated level.
+1. Write a **Rationale** (approx. 3 sentences) that justifies the economic and social logic behind the wage shift from {start_year} to your {last_year} simulated level.
 2. **Crucial:** Focus on the "Core Drivers" of value. Your narrative should naturally reveal whether the wage is driven by market scarcity, social necessity, high-stakes responsibility, or technical transformation.
 3. Provide a precise and explicit explanation. Clearly define the specific bargaining power and functional worth you assigned to this worker based on your simulation principles.
 4. Your response must be in a valid JSON format.
                                         
 **Occupation Data:**
     - Job Title: {job_name}
-    - {start_year} Current Wage: {prev_wage}
+    - {start_year} Current Wage: {current_wage}
     - {last_year} Simulated Wage: {simul_wage}
 
 **Required JSON Format:**
     {{
       "Job Title": "{job_name}",
-      "Rationale": "A concise three-sentence explanation justifying the 2040 wage you assigned relative to the 2025 baseline."
+      "Rationale": "A concise three-sentence explanation justifying the {last_year} wage you assigned relative to the {start_year} baseline."
     }}
                                         
 """)
