@@ -48,7 +48,7 @@ You are the "AI Sovereign Labor Economic Council." Your role is to govern and al
 USER_PROMPT_TEMPLATE = """
 The current year is {current_year}. You are tasked with determining the wage distribution for the next year, {next_year}, by assessing the evolving labor landscape.
 
-**Historical Wage Data (Total Budget N = {total_wage}):**
+**Historical Wage Data (Total Budget B = {total_wage}):**
 Below is the wage history for the past years. Use this as a reference for the current economic state, but do not feel bound by these past trajectories. Analyze the trends and the overall development of the labor market to inform the {next_year} distribution.
 {prev_wages}
 
